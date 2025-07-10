@@ -1,0 +1,3 @@
+[MASTER]
+disable=
+    W0718,  # broad-exception-caught 
