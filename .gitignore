@@ -48,9 +48,6 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Docker
-.dockerignore
-
 # Testing
 .pytest_cache/
 .coverage

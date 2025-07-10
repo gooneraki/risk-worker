@@ -52,7 +52,7 @@ def start_docker_services():
     """Start all services via Docker Compose"""
     print("🐳 Starting all docker services...")
     try:
-        subprocess.run(['docker-compose', 'up', '-d'], check=True)
+        subprocess.run(['docker-compose', 'up', '--build', '-d'], check=True)
 
         # Wait for services
         print("⏳ Waiting for services...")
