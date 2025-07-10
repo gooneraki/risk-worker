@@ -1,21 +1,20 @@
 """Database configuration"""
-import os
 from typing import AsyncGenerator
-from sqlmodel import SQLModel
+
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
+from sqlmodel import SQLModel
+
+from app.config import settings
 
 # Database configuration
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:password@postgres:5432/risk_metrics"
-)
+DATABASE_URL = settings.get_database_url()
 
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=False,  # Set to True for SQL query logging
-    poolclass=NullPool,  # Disable connection pooling for simplicity
+    echo=False,
+    poolclass=NullPool,
     future=True
 )
 

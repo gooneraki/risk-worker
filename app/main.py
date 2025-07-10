@@ -1,20 +1,42 @@
 """Main application module"""
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
+
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-import redis.asyncio as redis
 
-from app.metrics import process_ticker_event, get_latest_price
+from app.config import settings
 from app.database import get_db, init_db
+from app.metrics import process_ticker_event, get_latest_price
 from app.models import TickerPrice
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+# Ensure logs directory exists
+os.makedirs(os.path.dirname(settings.log_file), exist_ok=True)
+
+# Configure log rotation
+rotating_handler = RotatingFileHandler(
+    settings.log_file,
+    maxBytes=1*1024*1024,
+    backupCount=10,
+    encoding='utf-8'
+)
+
+console_handler = logging.StreamHandler()
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper()),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[rotating_handler, console_handler],
+    force=True
+)
 logger = logging.getLogger(__name__)
 
-REDIS_CHANNEL = "ticker_updates"
+# Redis setup - use the smart Redis client
+redis_client = settings.get_redis_client()
+REDIS_CHANNEL = settings.redis_channel
 
 
 @asynccontextmanager
@@ -91,7 +113,6 @@ async def subscribe_to_tickers():
     """Subscribe to Redis ticker updates channel"""
     while True:
         try:
-            redis_client = redis.from_url("redis://redis:6379")
             pubsub = redis_client.pubsub()
             await pubsub.subscribe(REDIS_CHANNEL)
 
@@ -113,7 +134,6 @@ async def subscribe_to_tickers():
         finally:
             try:
                 await pubsub.close()
-                await redis_client.close()
             except Exception:
                 pass
             logger.info("Restarting Redis subscription loop...")

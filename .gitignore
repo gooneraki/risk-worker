@@ -37,15 +37,47 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
 # Environment variables
-.env
-.env.local
+.env*
+
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
 
 # Docker
 .dockerignore
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
 
 # Personal
 .start.ps1
 .reinstall_py_packages.ps1
 high-requirements.txt
+data/
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,9 +1,11 @@
+name: risk-worker
+
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: risk_metrics
+      POSTGRES_DB: risk_worker
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
@@ -31,7 +33,7 @@ services:
   risk-worker:
     build: .
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/risk_metrics
+      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/risk_worker
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: INFO
     ports:
