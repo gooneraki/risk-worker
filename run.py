@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Simple run script for Risk Worker
+Risk Worker launcher
 Usage: 
-  python run.py                 # Ask local vs docker, then run
-  python run.py --local         # Force local mode
-  python run.py --docker        # Force docker mode
+  python run.py                 # Interactive mode
+  python run.py --local         # Force local (SQLite + FakeRedis)
+  python run.py --docker        # Force docker (PostgreSQL + Redis)
 """
 import subprocess
 import sys
@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 
 def check_service(host, port, timeout=1):
-    """Check if a service is running on host:port"""
+    """Check if service is running on host:port"""
     try:
         with socket.create_connection((host, port), timeout):
             return True
@@ -24,7 +24,7 @@ def check_service(host, port, timeout=1):
 
 
 def check_docker_env():
-    """Check if .env.production exists for docker mode"""
+    """Verify .env.production exists for docker mode"""
     if os.path.exists('.env.production'):
         return True
     else:
@@ -34,17 +34,17 @@ def check_docker_env():
 
 
 def start_docker_services():
-    """Start all services via Docker Compose"""
-    print("🐳 Starting all docker services...")
+    """Start Docker Compose services"""
+    print("🐳 Starting docker services...")
     try:
         subprocess.run(['docker-compose', 'up', '--build', '-d'], check=True)
 
-        # Wait for services
+        # Wait for services to be ready
         print("⏳ Waiting for services...")
         for _ in range(30):
-            if check_service('localhost', 5432) and \
-                check_service('localhost', 6379) and \
-                    check_service('localhost', 8000):
+            if (check_service('localhost', 5432) and
+                check_service('localhost', 6379) and
+                    check_service('localhost', 8000)):
                 print("✅ All services ready!")
                 return True
             time.sleep(1)
@@ -56,9 +56,8 @@ def start_docker_services():
         return False
 
 
-def run_app():
-    """Run the uvicorn server locally"""
-    # Load .env.local if it exists, otherwise exit
+def run_local():
+    """Run application locally with SQLite"""
     if os.path.exists('.env.local'):
         load_dotenv('.env.local')
     else:
@@ -87,34 +86,23 @@ def run_app():
 
 
 def main():
-    """Main function"""
-    # Check for flags
+    """Main entry point"""
     force_local = '--local' in sys.argv
     force_docker = '--docker' in sys.argv
 
-    # Determine mode
     if force_local:
         mode = 'local'
     elif force_docker:
         mode = 'docker'
     else:
-        # Simple binary question
         print("🚀 Risk Worker")
         print("Run locally (SQLite) or with Docker (PostgreSQL)?")
         choice = input("Enter 'local' or 'docker': ").strip().lower()
+        mode = 'local' if choice in ['local', 'l'] else 'docker'
 
-        if choice in ['local', 'l']:
-            mode = 'local'
-        elif choice in ['docker', 'd']:
-            mode = 'docker'
-        else:
-            print("Invalid choice. Defaulting to local mode.")
-            mode = 'local'
-
-    # Execute based on mode
     if mode == 'local':
         print("📍 Local mode selected")
-        run_app()
+        run_local()
     else:
         print("📍 Docker mode selected")
         if not check_docker_env():
@@ -122,12 +110,12 @@ def main():
         if not start_docker_services():
             print("❌ Failed to start services. Try local mode instead.")
             sys.exit(1)
+
         print("✅ All services running in Docker!")
         print("🌐 Access: http://localhost:8000")
         print("📋 Showing live logs (Press Ctrl+C to stop all services)...")
         print()
 
-        # Follow logs from all services
         try:
             subprocess.run(['docker-compose', 'logs', '-f'], check=True)
         except KeyboardInterrupt:

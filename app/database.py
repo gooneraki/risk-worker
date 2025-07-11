@@ -1,4 +1,5 @@
-"""Database configuration"""
+"""Database configuration and session management"""
+import logging
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
@@ -7,10 +8,11 @@ from sqlmodel import SQLModel
 
 from app.config import settings
 
-# Database configuration
-DATABASE_URL = settings.get_database_url()
+logger = logging.getLogger(__name__)
 
-# Create async engine
+# Database setup
+DATABASE_URL = settings.database_url
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
@@ -18,16 +20,18 @@ engine = create_async_engine(
     future=True
 )
 
-# Create async session factory
 AsyncSessionLocal = async_sessionmaker(
     engine,
     class_=AsyncSession,
     expire_on_commit=False
 )
 
+logger.info("Database engine configured: %s",
+            DATABASE_URL.split('@')[0] + '@***')
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Dependency to get database session"""
+    """Database session dependency"""
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -37,5 +41,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def init_db():
     """Initialize database tables"""
-    async with engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(SQLModel.metadata.create_all)
+        logger.info("Database tables initialized")
+    except Exception as e:
+        logger.error("Failed to initialize database tables: %s", e)
+        raise

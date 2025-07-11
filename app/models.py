@@ -1,11 +1,11 @@
-"""Database models"""
+"""Database models for ticker data"""
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
 
 class TickerPrice(SQLModel, table=True):
-    """Model for ticker prices"""
+    """Ticker price data with volume and market cap"""
     id: Optional[int] = Field(default=None, primary_key=True)
     ticker: str = Field(index=True)
     price: float
@@ -15,12 +15,11 @@ class TickerPrice(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     def __repr__(self):
-        return f"<TickerPrice(ticker='{self.ticker}', price={self.price}," + \
-            f" timestamp='{self.timestamp}')>"
+        return f"<TickerPrice(ticker='{self.ticker}', price={self.price}, timestamp='{self.timestamp}')>"
 
 
 class TickerMetadata(SQLModel, table=True):
-    """Model for ticker metadata"""
+    """Ticker metadata including company info"""
     id: Optional[int] = Field(default=None, primary_key=True)
     ticker: str = Field(unique=True, index=True)
     company_name: Optional[str] = None

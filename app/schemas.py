@@ -1,11 +1,11 @@
-"""API response schemas"""
+"""Pydantic schemas for API responses and internal data transfer"""
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel
 
 
 class TickerPriceResponse(SQLModel):
-    """Response schema for ticker price"""
+    """API response schema for ticker price"""
     ticker: str
     price: float
     volume: Optional[float] = None
@@ -14,7 +14,7 @@ class TickerPriceResponse(SQLModel):
 
 
 class TickerMetadataResponse(SQLModel):
-    """Response schema for ticker metadata"""
+    """API response schema for ticker metadata"""
     ticker: str
     company_name: Optional[str] = None
     sector: Optional[str] = None
@@ -23,7 +23,7 @@ class TickerMetadataResponse(SQLModel):
 
 
 class PriceFetchResult(SQLModel):
-    """Result schema for price fetch operations"""
+    """Internal schema for price fetch operations"""
     ticker: str
     price: float
     volume: Optional[float] = None

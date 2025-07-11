@@ -1,4 +1,4 @@
-"""Metrics module"""
+"""Core business logic for ticker price processing"""
 import logging
 from datetime import datetime
 from typing import Optional
@@ -10,24 +10,18 @@ from app.models import TickerPrice, TickerMetadata
 from app.schemas import PriceFetchResult
 from app.database import AsyncSessionLocal
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 async def fetch_price_from_yfinance(ticker: str) -> PriceFetchResult:
-    """Fetch current price data from yFinance for a given ticker"""
+    """Fetch current price data from yFinance"""
     try:
-        # Create yFinance ticker object
         yf_ticker = yf.Ticker(ticker)
-
-        # Get current info
         info = yf_ticker.info
-
-        # Get latest price data
         hist = yf_ticker.history(period="1d")
 
         if hist.empty:
+            logger.warning("No price data available for %s", ticker)
             return PriceFetchResult(
                 ticker=ticker,
                 price=0.0,
@@ -35,13 +29,13 @@ async def fetch_price_from_yfinance(ticker: str) -> PriceFetchResult:
                 error_message="No price data available"
             )
 
-        # Extract latest price and volume
+        # Extract latest price data
         latest = hist.iloc[-1]
         price = float(latest['Close'])
         volume = float(latest['Volume']) if 'Volume' in latest else None
         market_cap = info.get('marketCap', None)
 
-        logger.info("Successfully fetched price for %s: $%.2f", ticker, price)
+        logger.debug("Fetched price for %s: $%.2f", ticker, price)
 
         return PriceFetchResult(
             ticker=ticker,
@@ -62,9 +56,8 @@ async def fetch_price_from_yfinance(ticker: str) -> PriceFetchResult:
 
 
 async def store_price_in_db(session: AsyncSession, price_result: PriceFetchResult) -> bool:
-    """Store price data in the database"""
+    """Store price data in database"""
     try:
-        # Create new price record
         price_record = TickerPrice(
             ticker=price_result.ticker,
             price=price_result.price,
@@ -76,7 +69,7 @@ async def store_price_in_db(session: AsyncSession, price_result: PriceFetchResul
         session.add(price_record)
         await session.commit()
 
-        logger.info("Stored price for %s in database", price_result.ticker)
+        logger.debug("Stored price for %s in database", price_result.ticker)
         return True
 
     except Exception as e:
@@ -87,18 +80,18 @@ async def store_price_in_db(session: AsyncSession, price_result: PriceFetchResul
 
 
 async def update_ticker_metadata(session: AsyncSession, ticker: str) -> bool:
-    """Update ticker metadata in the database"""
+    """Update or create ticker metadata"""
     try:
         yf_ticker = yf.Ticker(ticker)
         info = yf_ticker.info
 
-        # Check if metadata already exists
+        # Check for existing metadata
         stmt = select(TickerMetadata).where(TickerMetadata.ticker == ticker)
         result = await session.execute(stmt)
         existing_metadata = result.scalar_one_or_none()
 
         if existing_metadata:
-            # Update existing metadata
+            # Update existing
             existing_metadata.company_name = info.get(
                 'longName', existing_metadata.company_name)
             existing_metadata.sector = info.get(
@@ -106,8 +99,9 @@ async def update_ticker_metadata(session: AsyncSession, ticker: str) -> bool:
             existing_metadata.industry = info.get(
                 'industry', existing_metadata.industry)
             existing_metadata.last_updated = datetime.utcnow()
+            logger.debug("Updated metadata for %s", ticker)
         else:
-            # Create new metadata
+            # Create new
             metadata = TickerMetadata(
                 ticker=ticker,
                 company_name=info.get('longName'),
@@ -116,9 +110,9 @@ async def update_ticker_metadata(session: AsyncSession, ticker: str) -> bool:
                 last_updated=datetime.utcnow()
             )
             session.add(metadata)
+            logger.debug("Created metadata for %s", ticker)
 
         await session.commit()
-        logger.info("Updated metadata for %s", ticker)
         return True
 
     except Exception as e:
@@ -128,8 +122,8 @@ async def update_ticker_metadata(session: AsyncSession, ticker: str) -> bool:
 
 
 async def process_ticker_event(ticker: str):
-    """Main function to process ticker update events"""
-    logger.info("Processing ticker event for: %s", ticker)
+    """Main ticker processing pipeline"""
+    logger.info("Processing ticker: %s", ticker)
 
     try:
         # Fetch price from yFinance
@@ -142,24 +136,21 @@ async def process_ticker_event(ticker: str):
 
         # Store in database
         async with AsyncSessionLocal() as session:
-            # Store price data
             price_stored = await store_price_in_db(session, price_result)
-
-            # Update metadata
             metadata_updated = await update_ticker_metadata(session, ticker)
 
             if price_stored and metadata_updated:
-                logger.info("Successfully processed ticker %s", ticker)
+                logger.info("Successfully processed %s: $%.2f",
+                            ticker, price_result.price)
             else:
-                logger.warning("Partial success processing ticker %s", ticker)
+                logger.warning("Partial success processing %s", ticker)
 
     except Exception as e:
-        logger.error("Error processing ticker event for %s: %s",
-                     ticker, str(e))
+        logger.error("Error processing ticker %s: %s", ticker, str(e))
 
 
 async def get_latest_price(session: AsyncSession, ticker: str) -> Optional[TickerPrice]:
-    """Get the latest price for a ticker from the database"""
+    """Get latest price for a ticker"""
     try:
         stmt = (
             select(TickerPrice)
