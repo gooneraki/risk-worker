@@ -11,6 +11,8 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Database setup
+# DATABASE_URL is automatically converted to use async driver (postgresql+asyncpg://)
+# if it starts with postgresql:// (common in production environments like Render.com)
 DATABASE_URL = settings.database_url
 
 engine = create_async_engine(

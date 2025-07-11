@@ -7,4 +7,3 @@ yfinance
 python-dotenv
 aiosqlite
 fakeredis
-psycopg2-binary
