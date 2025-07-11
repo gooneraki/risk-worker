@@ -20,7 +20,7 @@ class Settings:
             load_dotenv('.env')
 
         # Required settings
-        self.database_url: str = self._get_required_env("DATABASE_URL")
+        self.database_url: str = self._get_database_url()
         self.log_level: str = self._get_required_env("LOG_LEVEL")
         self.worker_name: str = self._get_required_env("WORKER_NAME")
         self.log_file: str = self._get_required_env("LOG_FILE")
@@ -39,19 +39,30 @@ class Settings:
                              f"See environment.example for reference.")
         return value
 
+    def _get_database_url(self) -> str:
+        """Get database URL and ensure it uses asyncpg driver for PostgreSQL"""
+        database_url = self._get_required_env("DATABASE_URL")
+
+        # Convert postgresql:// to postgresql+asyncpg:// for async support
+        if database_url.startswith("postgresql://"):
+            database_url = database_url.replace(
+                "postgresql://", "postgresql+asyncpg://", 1)
+
+        return database_url
+
     def _get_redis_url(self) -> str:
         """Get Redis URL - either from REDIS_URL env var or construct from components"""
         # First check for full Redis URL (for production/Upstash)
         redis_url = os.getenv("REDIS_URL")
         if redis_url:
             return redis_url
-        
+
         # Fallback to individual components (for local development)
         redis_host = os.getenv("REDIS_HOST", "redis")
         redis_port = os.getenv("REDIS_PORT", "6379")
         redis_password = os.getenv("REDIS_PASSWORD")
         redis_db = os.getenv("REDIS_DB", "0")
-        
+
         if redis_password:
             return f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
         else:
@@ -62,7 +73,7 @@ class Settings:
         # If we have a Redis URL (production), don't use fake Redis
         if os.getenv("REDIS_URL"):
             return False
-        
+
         # For local development, check if Redis is available
         redis_available = self._check_redis_available()
         return not redis_available
