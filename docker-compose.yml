@@ -32,10 +32,8 @@ services:
   # Risk Worker
   risk-worker:
     build: .
-    environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:password@postgres:5432/risk_worker
-      REDIS_URL: redis://redis:6379
-      LOG_LEVEL: INFO
+    env_file:
+      - .env.production
     ports:
       - "8000:8000"
     depends_on:
