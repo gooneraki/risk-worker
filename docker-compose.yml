@@ -1,7 +1,7 @@
 name: risk-worker
 
 services:
-  postgres:
+  risk-postgres:
     image: postgres:16.9-alpine
     env_file:
       - .env.docker.postgres
@@ -36,7 +36,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      risk-postgres:
         condition: service_healthy
       redis:
         condition: service_healthy

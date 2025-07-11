@@ -46,6 +46,7 @@ class Settings:
         if db_url.startswith('postgresql://'):
             return db_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
         # Keep other formats (like sqlite+aiosqlite://) as-is
+
         return db_url
 
     def _get_redis_url(self) -> str:

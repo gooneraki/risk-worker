@@ -77,7 +77,7 @@ docker-compose up -d --build
 
 # View logs (most useful)
 docker-compose logs -f risk-worker
-docker-compose logs -f postgres
+docker-compose logs -f risk-postgres
 docker-compose logs -f redis
 
 # Service status
