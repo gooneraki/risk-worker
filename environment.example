@@ -1,30 +1,50 @@
-# Risk Worker Configuration Template
-# Copy this file to .env and adjust settings as needed
+# Risk Worker Environment Configuration Example
 
-# ========================================
-# SCENARIO 1: Docker Mode (PostgreSQL + Redis)
-# ========================================
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/risk_worker
-REDIS_URL=redis://localhost:6379
+# Usage:
+# - For local development, copy the "Local Development" section to .env.local
+# - For production, use the "Production" sections for .env.production (app) and .env.postgres (database)
+# - NEVER commit your real .env files to version control
+
+# =====================================================
+# SCENARIO 1: Local Development (.env.local)
+# =====================================================
+# For running locally with SQLite and FakeRedis
+
+# .env.local
+DATABASE_URL=sqlite+aiosqlite:///./data/risk_worker.db
+LOG_LEVEL=INFO
+WORKER_NAME=risk-worker
+LOG_FILE=logs/app.log
+API_HOST=127.0.0.1
+API_PORT=8000
+
+# =====================================================
+# SCENARIO 2: Production
+# =====================================================
+
+# a) App Environment (.env.production)
+# For running in production with PostgreSQL and Redis
+
+# .env.production
+DATABASE_URL=postgresql+asyncpg://myuser:mypassword@postgres:5432/risk_worker
 LOG_LEVEL=INFO
 WORKER_NAME=risk-worker
 LOG_FILE=logs/app.log
 API_HOST=0.0.0.0
 API_PORT=8000
 
-# ========================================
-# SCENARIO 2: Local Mode (SQLite + FakeRedis)
-# ========================================
-# DATABASE_URL=sqlite+aiosqlite:///./data/risk_worker.db
-# No REDIS_URL needed - FakeRedis auto-detected
-# LOG_LEVEL=INFO
-# WORKER_NAME=risk-worker-local
-# LOG_FILE=logs/app.log
-# API_HOST=127.0.0.1
-# API_PORT=8000
+# b) Database Environment (.env.postgres)
+# Used by the postgres service in docker-compose.yml
 
-# ========================================
-# Note: Redis vs FakeRedis is auto-detected
-# ========================================
-# If Redis is running on localhost:6379, it will be used
-# If Redis is not detected, FakeRedis (in-memory) will be used automatically 
+# .env.postgres
+POSTGRES_DB=risk_worker
+POSTGRES_USER=myuser
+POSTGRES_PASSWORD=mypassword
+
+# =====================================================
+# Notes
+# =====================================================
+# - For production, set strong, unique values for POSTGRES_USER and POSTGRES_PASSWORD.
+# - The DATABASE_URL in .env.production must match the credentials in .env.postgres.
+# - Redis vs FakeRedis is auto-detected: if Redis is running, it will be used; otherwise, FakeRedis is used.
+# - NEVER commit your real .env files to version control. Only commit this example file. 

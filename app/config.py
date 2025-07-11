@@ -31,7 +31,7 @@ class Settings:
         if self.use_fake_redis:
             self.redis_url = "fake://localhost"  # Placeholder for FakeRedis
         else:
-            self.redis_url = self._get_required_env("REDIS_URL")
+            self.redis_url = "redis://redis:6379"
 
         # Application settings (required)
         self.log_level: str = self._get_required_env("LOG_LEVEL")
@@ -64,9 +64,9 @@ class Settings:
         return not redis_available
 
     def _check_redis_available(self) -> bool:
-        """Check if Redis is available on localhost:6379"""
+        """Check if Redis is available on redis:6379"""
         try:
-            with socket.create_connection(('localhost', 6379), timeout=1):
+            with socket.create_connection(('redis', 6379), timeout=1):
                 return True
         except (socket.error, socket.timeout):
             return False

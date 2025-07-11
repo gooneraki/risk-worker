@@ -23,21 +23,6 @@ def check_service(host, port, timeout=1):
         return False
 
 
-def create_local_env():
-    """Create .env file for local mode (SQLite + FakeRedis)"""
-    env_content = """# Risk Worker - Local Mode
-DATABASE_URL=sqlite+aiosqlite:///./data/risk_worker.db
-LOG_LEVEL=INFO
-WORKER_NAME=risk-worker-local
-LOG_FILE=logs/app.log
-API_HOST=127.0.0.1
-API_PORT=8000
-"""
-    with open('.env', 'w', encoding='utf-8') as f:
-        f.write(env_content)
-    print("✅ Created local .env file")
-
-
 def check_docker_env():
     """Check if .env.production exists for docker mode"""
     if os.path.exists('.env.production'):
@@ -73,7 +58,12 @@ def start_docker_services():
 
 def run_app():
     """Run the uvicorn server locally"""
-    load_dotenv()
+    # Load .env.local if it exists, otherwise exit
+    if os.path.exists('.env.local'):
+        load_dotenv('.env.local')
+    else:
+        print("❌ .env.local not found. Please create it for local development.")
+        sys.exit(1)
 
     api_host = os.getenv('API_HOST', '127.0.0.1')
     api_port = os.getenv('API_PORT', '8000')
@@ -124,7 +114,6 @@ def main():
     # Execute based on mode
     if mode == 'local':
         print("📍 Local mode selected")
-        create_local_env()
         run_app()
     else:
         print("📍 Docker mode selected")
