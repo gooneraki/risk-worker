@@ -3,7 +3,7 @@ name: risk-worker
 services:
   # PostgreSQL Database
   postgres:
-    image: postgres:15
+    image: postgres:16.9-alpine
     env_file:
       - .env.postgres
     ports:
