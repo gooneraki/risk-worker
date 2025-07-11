@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+redis
+asyncpg
+sqlmodel
+yfinance
+python-dotenv
+aiosqlite
+fakeredis

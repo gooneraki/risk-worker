@@ -27,9 +27,9 @@ class Settings:
         self.api_host: str = self._get_required_env("API_HOST")
         self.api_port: int = int(self._get_required_env("API_PORT"))
 
-        # Redis auto-detection
+        # Redis configuration - support both URL and individual params
+        self.redis_url: str = self._get_redis_url()
         self.use_fake_redis: bool = self._should_use_fake_redis()
-        self.redis_url = "fake://localhost" if self.use_fake_redis else "redis://redis:6379"
 
     def _get_required_env(self, key: str) -> str:
         """Get required environment variable or raise error"""
@@ -39,15 +39,40 @@ class Settings:
                              f"See environment.example for reference.")
         return value
 
+    def _get_redis_url(self) -> str:
+        """Get Redis URL - either from REDIS_URL env var or construct from components"""
+        # First check for full Redis URL (for production/Upstash)
+        redis_url = os.getenv("REDIS_URL")
+        if redis_url:
+            return redis_url
+        
+        # Fallback to individual components (for local development)
+        redis_host = os.getenv("REDIS_HOST", "redis")
+        redis_port = os.getenv("REDIS_PORT", "6379")
+        redis_password = os.getenv("REDIS_PASSWORD")
+        redis_db = os.getenv("REDIS_DB", "0")
+        
+        if redis_password:
+            return f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
+        else:
+            return f"redis://{redis_host}:{redis_port}/{redis_db}"
+
     def _should_use_fake_redis(self) -> bool:
         """Auto-detect Redis availability"""
+        # If we have a Redis URL (production), don't use fake Redis
+        if os.getenv("REDIS_URL"):
+            return False
+        
+        # For local development, check if Redis is available
         redis_available = self._check_redis_available()
         return not redis_available
 
     def _check_redis_available(self) -> bool:
         """Check if Redis is available on redis:6379"""
         try:
-            with socket.create_connection(('redis', 6379), timeout=1):
+            redis_host = os.getenv("REDIS_HOST", "redis")
+            redis_port = int(os.getenv("REDIS_PORT", "6379"))
+            with socket.create_connection((redis_host, redis_port), timeout=1):
                 return True
         except (socket.error, socket.timeout):
             return False
@@ -59,7 +84,11 @@ class Settings:
             return fakeredis.aioredis.FakeRedis()
         else:
             import redis.asyncio as redis
-            return redis.from_url(self.redis_url)
+            # For Upstash/TLS connections, configure SSL properly
+            if self.redis_url.startswith("rediss://") or os.getenv("REDIS_TLS", "false").lower() == "true":
+                return redis.from_url(self.redis_url, ssl_cert_reqs=None)
+            else:
+                return redis.from_url(self.redis_url)
 
     @property
     def yf_timeout(self) -> int:
