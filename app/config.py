@@ -26,8 +26,6 @@ class Settings:
             self._get_required_env("DATABASE_URL"))
         self.log_level: str = self._get_required_env("LOG_LEVEL")
         self.log_file: str = self._get_required_env("LOG_FILE")
-        self.api_host: str = self._get_required_env("API_HOST")
-        self.api_port: int = int(self._get_required_env("API_PORT"))
 
         # Redis configuration - support both URL and individual params
         self.redis_url: str = self._get_redis_url()

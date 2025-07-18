@@ -42,8 +42,7 @@ REDIS_CHANNEL = settings.redis_channel
 async def lifespan(_app: FastAPI):
     """Handle startup and shutdown events"""
     logger.info("Starting Risk Worker v1.0 - %s", settings.worker_name)
-    logger.info("Configuration: API %s:%d, Redis: %s",
-                settings.api_host, settings.api_port,
+    logger.info("Configuration: Redis: %s",
                 "FakeRedis" if settings.use_fake_redis else "Redis")
 
     # Initialize database

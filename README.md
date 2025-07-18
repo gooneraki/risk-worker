@@ -2,7 +2,7 @@
 
 FastAPI microservice that processes stock ticker updates in real-time.
 
-## What it does
+## Features
 
 - Subscribes to Redis `ticker_updates` channel
 - Fetches current stock prices from yFinance
@@ -11,32 +11,18 @@ FastAPI microservice that processes stock ticker updates in real-time.
 
 ## Quick Start
 
-### Local Development
 ```bash
 # Copy environment file
 cp env.example .env
 
 # Start locally (SQLite + FakeRedis)
 .\local_start.ps1
-# Choose "L" for local
-```
-
-### Docker Deployment
-```bash
-# Copy environment files
-cp env.example .env.docker.postgres
-cp env.example .env.docker.worker
-
-# Edit the .env.docker.* files with appropriate values
-# Then start with Docker
-.\local_start.ps1
-# Choose "D" for Docker
 ```
 
 ## API Endpoints
 
 - `GET /healthz` - Health check
-- `GET /latest-price/{ticker}` - Get latest price for ticker (e.g., `/latest-price/AAPL`)
+- `GET /latest-price/{ticker}` - Get latest price for ticker
 - `POST /trigger-update/{ticker}` - Manually trigger price update
 
 ## Configuration
@@ -47,58 +33,23 @@ Key environment variables in `.env`:
 # Database
 DATABASE_URL=sqlite+aiosqlite:///./data/risk_worker.db
 
-# API Server
-API_HOST=127.0.0.1
-API_PORT=8000
-
 # Logging
 LOG_LEVEL=INFO
 LOG_FILE=logs/app.log
+
+# Worker Security
+WORKER_SECRET=your-shared-secret-key-change-this
 ```
 
 ## Usage
 
-### Test the API
 ```bash
-# Check health
+# Test the API
 curl http://localhost:8000/healthz
-
-# Get latest price
 curl http://localhost:8000/latest-price/AAPL
-
-# Trigger manual update
 curl -X POST http://localhost:8000/trigger-update/AAPL
-```
 
-### Send ticker updates via Redis
-```bash
-# Connect to Redis
+# Send ticker updates via Redis
 redis-cli
-
-# Send ticker update
 PUBLISH ticker_updates "AAPL"
-
-# Or JSON format
-PUBLISH ticker_updates '{"ticker": "AAPL", "action": "add"}'
-```
-
-## Docker Commands
-
-```bash
-# Start services
-docker-compose up -d --build
-
-# View logs
-docker-compose logs -f risk-worker
-
-# Stop services
-docker-compose down
-```
-
-## Architecture
-
-- **FastAPI** - Web framework
-- **SQLModel** - Database ORM
-- **PostgreSQL** - Production database
-- **Redis** - Pub/sub messaging
-- **yFinance** - Stock price data 
+``` 
