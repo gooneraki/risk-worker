@@ -19,8 +19,6 @@ class Settings:
         elif os.path.exists('.env'):
             load_dotenv('.env')
 
-        self.worker_name: str = "Risk-Worker"
-
         # Required settings
         self.database_url: str = self._convert_db_url_for_async(
             self._get_required_env("DATABASE_URL"))

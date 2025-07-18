@@ -41,9 +41,8 @@ REDIS_CHANNEL = settings.redis_channel
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Handle startup and shutdown events"""
-    logger.info("Starting Risk Worker v1.0 - %s", settings.worker_name)
-    logger.info("Configuration: Redis: %s",
-                "FakeRedis" if settings.use_fake_redis else "Redis")
+    logger.info("--------------------------------")
+    logger.info("Starting Risk Worker")
 
     # Initialize database
     try:
@@ -55,7 +54,8 @@ async def lifespan(_app: FastAPI):
 
     # Start Redis subscription
     task = asyncio.create_task(subscribe_to_tickers())
-    logger.info("Redis subscription started")
+    logger.info("Redis subscription started (%s)",
+                "FakeRedis" if settings.use_fake_redis else "Redis")
 
     yield
 
@@ -84,7 +84,7 @@ def verify_shared_secret(x_worker_secret: str = Header(None)):
 @app.get("/healthz")
 def healthz():
     """Health check endpoint"""
-    return {"status": "ok", "service": "risk-worker", "worker": settings.worker_name}
+    return {"status": "ok", "service": "risk-worker"}
 
 
 @app.get("/")
@@ -93,8 +93,6 @@ def root():
     """Root endpoint - API information"""
     return {
         "service": "risk-worker",
-        "version": "1.0",
-        "worker": settings.worker_name,
         "description": "Async worker for processing ticker price updates",
         "endpoints": {
             "health": "/healthz",
