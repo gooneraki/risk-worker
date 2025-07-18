@@ -87,6 +87,25 @@ def healthz():
     return {"status": "ok", "service": "risk-worker", "worker": settings.worker_name}
 
 
+@app.get("/")
+@app.head("/")
+def root():
+    """Root endpoint - API information"""
+    return {
+        "service": "risk-worker",
+        "version": "1.0",
+        "worker": settings.worker_name,
+        "description": "Async worker for processing ticker price updates",
+        "endpoints": {
+            "health": "/healthz",
+            "docs": "/docs",
+            "latest_price": "/latest-price/{ticker}",
+            "trigger_update": "/trigger-update/{ticker}"
+        },
+        "status": "running"
+    }
+
+
 @app.get("/latest-price/{ticker}", response_model=TickerPrice)
 async def get_latest_ticker_price(
     ticker: str,
