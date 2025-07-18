@@ -33,6 +33,9 @@ class Settings:
         self.redis_url: str = self._get_redis_url()
         self.use_fake_redis: bool = self._should_use_fake_redis()
 
+        # Simple security for server-to-server communication
+        self.worker_secret: str = self._get_required_env("WORKER_SECRET")
+
     def _get_required_env(self, key: str) -> str:
         """Get required environment variable or raise error"""
         value = os.getenv(key)

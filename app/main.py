@@ -5,7 +5,7 @@ import os
 from contextlib import asynccontextmanager
 from logging.handlers import RotatingFileHandler
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -75,6 +75,13 @@ app = FastAPI(title="Risk Worker",
               lifespan=lifespan)
 
 
+def verify_shared_secret(x_worker_secret: str = Header(None)):
+    """Simple security check for server-to-server communication"""
+    if x_worker_secret != settings.worker_secret:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return True
+
+
 @app.get("/healthz")
 def healthz():
     """Health check endpoint"""
@@ -82,7 +89,11 @@ def healthz():
 
 
 @app.get("/latest-price/{ticker}", response_model=TickerPrice)
-async def get_latest_ticker_price(ticker: str, db: AsyncSession = Depends(get_db)):
+async def get_latest_ticker_price(
+    ticker: str,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(verify_shared_secret)
+):
     """Get latest price for a ticker"""
     try:
         price_record = await get_latest_price(db, ticker.upper())
@@ -102,7 +113,10 @@ async def get_latest_ticker_price(ticker: str, db: AsyncSession = Depends(get_db
 
 
 @app.post("/trigger-update/{ticker}")
-async def trigger_ticker_update(ticker: str):
+async def trigger_ticker_update(
+    ticker: str,
+    _: bool = Depends(verify_shared_secret)
+):
     """Manually trigger price update for a ticker"""
     try:
         logger.info("Manual trigger for %s", ticker)
