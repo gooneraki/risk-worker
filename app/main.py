@@ -12,6 +12,7 @@ from app.config import settings
 from app.database import get_db, init_db
 from app.metrics import process_ticker_event, get_latest_price
 from app.models import TickerPrice
+from app.redis_service import redis_service
 
 # Setup logging with rotation
 os.makedirs(os.path.dirname(settings.log_file), exist_ok=True)
@@ -34,7 +35,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Redis client and channel
-redis_client = settings.get_redis_client()
+
 REDIS_CHANNEL = settings.redis_channel
 
 
@@ -52,20 +53,22 @@ async def lifespan(_app: FastAPI):
         logger.error("Failed to initialize database: %s", e)
         raise
 
-    # Start Redis subscription
-    task = asyncio.create_task(subscribe_to_tickers())
-    logger.info("Redis subscription started (%s)",
-                "FakeRedis" if settings.use_fake_redis else "Redis")
+    # Initialize Redis connection
+    try:
+        await redis_service.connect()
+        logger.info("Redis connection established")
+    except Exception as e:
+        logger.error("Redis connection failed: %s", e)
+        raise
 
     yield
 
-    # Cleanup on shutdown
-    logger.info("Shutting down Risk Worker")
-    task.cancel()
     try:
-        await task
-    except asyncio.CancelledError:
-        pass
+        await redis_service.disconnect()
+        logger.info("Redis connection closed")
+    except Exception as e:
+        logger.error("Redis connection failed: %s", e)
+
     logger.info("Shutdown complete")
 
 
@@ -148,17 +151,17 @@ async def subscribe_to_tickers():
     """Subscribe to Redis ticker updates and process them"""
     while True:
         try:
-            pubsub = redis_client.pubsub()
-            await pubsub.subscribe(REDIS_CHANNEL)
-
+            pubsub = await redis_service.subscribe_to_channel(REDIS_CHANNEL)
             logger.info("Subscribed to Redis channel: %s", REDIS_CHANNEL)
 
+            # Start the subscription loop
             async for message in pubsub.listen():
                 if message['type'] == 'message':
                     try:
                         # Parse JSON message from risk-api
                         import json
                         message_data = json.loads(message['data'].decode())
+
                         ticker = message_data.get('ticker', '').strip().upper()
                         action = message_data.get('action', 'add')
 

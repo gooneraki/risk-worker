@@ -1,15 +1,30 @@
 """Application configuration with environment-based settings"""
 import os
-import socket
+from dataclasses import dataclass
 from dotenv import load_dotenv
+
+
+@dataclass
+class RedisConfig:
+    """Redis configuration settings."""
+    host: str
+    port: int
+    user: str
+    password: str
+    domain: str
+    tls: str
+    url: str = ""
+
+    def __post_init__(self):
+        self.url = f"{self.domain}://{self.user}:{self.password}@{self.host}:{self.port}" if \
+            self.user and self.password else \
+            f"{self.domain}://{self.host}:{self.port}"
 
 
 class Settings:
     """Application configuration loaded from environment variables"""
 
     # Constants
-    YF_TIMEOUT = 10
-    YF_RETRY_ATTEMPTS = 3
     REDIS_CHANNEL = "ticker_updates"
 
     def __init__(self, env_file: str | None = None):
@@ -19,18 +34,41 @@ class Settings:
         elif os.path.exists('.env'):
             load_dotenv('.env')
 
+        # Environment detection
+        self.env = os.getenv("ENV", "dev")
+
         # Required settings
         self.database_url: str = self._convert_db_url_for_async(
             self._get_required_env("DATABASE_URL"))
         self.log_level: str = self._get_required_env("LOG_LEVEL")
         self.log_file: str = self._get_required_env("LOG_FILE")
 
-        # Redis configuration - support both URL and individual params
-        self.redis_url: str = self._get_redis_url()
-        self.use_fake_redis: bool = self._should_use_fake_redis()
-
         # Simple security for server-to-server communication
         self.worker_secret: str = self._get_required_env("WORKER_SECRET")
+
+        # Redis configuration based on environment
+        if self.env == "prod":
+            self.redis_config = RedisConfig(
+                host=self._get_env_var("REDIS_HOST"),
+                port=int(self._get_env_var("REDIS_PORT")),
+                user=self._get_env_var("REDIS_USER"),
+                password=self._get_env_var("REDIS_PASSWORD"),
+                domain=self._get_env_var("REDIS_DOMAIN"),
+                tls=self._get_env_var("REDIS_TLS"),
+            )
+        elif self.env == "docker":
+            self.redis_config = RedisConfig(
+                host=self._get_env_var("REDIS_HOST"),
+                port=int(self._get_env_var("REDIS_PORT")),
+                user="",
+                password="",
+                domain=self._get_env_var("REDIS_DOMAIN"),
+                tls=self._get_env_var("REDIS_TLS"),
+            )
+
+    def _get_env_var(self, key: str, default: str = "") -> str:
+        """Get environment variable with default"""
+        return os.getenv(key, default)
 
     def _get_required_env(self, key: str) -> str:
         """Get required environment variable or raise error"""
@@ -46,69 +84,12 @@ class Settings:
         if db_url.startswith('postgresql://'):
             return db_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
         # Keep other formats (like sqlite+aiosqlite://) as-is
-
         return db_url
 
-    def _get_redis_url(self) -> str:
-        """Get Redis URL - either from REDIS_URL env var or construct from components"""
-        # First check for full Redis URL (for production/Upstash)
-        redis_url = os.getenv("REDIS_URL")
-        if redis_url:
-            return redis_url
-
-        # Fallback to individual components (for local development)
-        redis_host = os.getenv("REDIS_HOST", "redis")
-        redis_port = os.getenv("REDIS_PORT", "6379")
-        redis_password = os.getenv("REDIS_PASSWORD")
-        redis_db = os.getenv("REDIS_DB", "0")
-
-        if redis_password:
-            return f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
-        else:
-            return f"redis://{redis_host}:{redis_port}/{redis_db}"
-
-    def _should_use_fake_redis(self) -> bool:
-        """Auto-detect Redis availability"""
-        # If we have a Redis URL (production), don't use fake Redis
-        if os.getenv("REDIS_URL"):
-            return False
-
-        # For local development, check if Redis is available
-        redis_available = self._check_redis_available()
-        return not redis_available
-
-    def _check_redis_available(self) -> bool:
-        """Check if Redis is available on redis:6379"""
-        try:
-            redis_host = os.getenv("REDIS_HOST", "redis")
-            redis_port = int(os.getenv("REDIS_PORT", "6379"))
-            with socket.create_connection((redis_host, redis_port), timeout=1):
-                return True
-        except (socket.error, socket.timeout):
-            return False
-
-    def get_redis_client(self):
-        """Get Redis client - real or fake based on availability"""
-        if self.use_fake_redis:
-            import fakeredis.aioredis
-            return fakeredis.aioredis.FakeRedis()
-        else:
-            import redis.asyncio as redis
-            # For Upstash/TLS connections, configure SSL properly
-            if self.redis_url.startswith("rediss://") or os.getenv("REDIS_TLS", "false").lower() == "true":
-                return redis.from_url(self.redis_url, ssl_cert_reqs=None)
-            else:
-                return redis.from_url(self.redis_url)
-
     @property
-    def yf_timeout(self) -> int:
-        """Get Yahoo Finance timeout"""
-        return self.YF_TIMEOUT
-
-    @property
-    def yf_retry_attempts(self) -> int:
-        """Get Yahoo Finance retry attempts"""
-        return self.YF_RETRY_ATTEMPTS
+    def use_fake_redis(self) -> bool:
+        """Whether FakeRedis is being used"""
+        return self.env == "dev"
 
     @property
     def redis_channel(self) -> str:
