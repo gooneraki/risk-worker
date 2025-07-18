@@ -40,8 +40,6 @@ class Settings:
         # Required settings
         self.database_url: str = self._convert_db_url_for_async(
             self._get_required_env("DATABASE_URL"))
-        self.log_level: str = self._get_required_env("LOG_LEVEL")
-        self.log_file: str = self._get_required_env("LOG_FILE")
 
         # Simple security for server-to-server communication
         self.worker_secret: str = self._get_required_env("WORKER_SECRET")
@@ -85,11 +83,6 @@ class Settings:
             return db_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
         # Keep other formats (like sqlite+aiosqlite://) as-is
         return db_url
-
-    @property
-    def use_fake_redis(self) -> bool:
-        """Whether FakeRedis is being used"""
-        return self.env == "dev"
 
     @property
     def redis_channel(self) -> str:

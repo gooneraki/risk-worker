@@ -1,42 +1,21 @@
 """Main application module - FastAPI worker with Redis subscription"""
 import asyncio
 import logging
-import os
 from contextlib import asynccontextmanager
-from logging.handlers import RotatingFileHandler
-
 from fastapi import FastAPI, HTTPException, Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
+from app.logger_service import logger
 from app.config import settings
 from app.database import get_db, init_db
 from app.metrics import process_ticker_event, get_latest_price
 from app.models import TickerPrice
 from app.redis_service import redis_service
-
-# Setup logging with rotation
-os.makedirs(os.path.dirname(settings.log_file), exist_ok=True)
-
-rotating_handler = RotatingFileHandler(
-    settings.log_file,
-    maxBytes=1*1024*1024,
-    backupCount=10,
-    encoding='utf-8'
-)
-
-console_handler = logging.StreamHandler()
-
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper()),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[rotating_handler, console_handler],
-    force=True
-)
-logger = logging.getLogger(__name__)
-
 # Redis client and channel
-
 REDIS_CHANNEL = settings.redis_channel
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager

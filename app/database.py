@@ -28,8 +28,7 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
-logger.info("Database engine configured: %s",
-            DATABASE_URL.split('@')[0] + '@***')
+logger.info("Database engine configured: %s", DATABASE_URL.split('//')[0])
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
