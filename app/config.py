@@ -19,11 +19,12 @@ class Settings:
         elif os.path.exists('.env'):
             load_dotenv('.env')
 
+        self.worker_name: str = "Risk-Worker"
+
         # Required settings
         self.database_url: str = self._convert_db_url_for_async(
             self._get_required_env("DATABASE_URL"))
         self.log_level: str = self._get_required_env("LOG_LEVEL")
-        self.worker_name: str = self._get_required_env("WORKER_NAME")
         self.log_file: str = self._get_required_env("LOG_FILE")
         self.api_host: str = self._get_required_env("API_HOST")
         self.api_port: int = int(self._get_required_env("API_PORT"))

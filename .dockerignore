@@ -1,14 +1,23 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker
+docker-compose.yml
+Dockerfile
+.docker
+.dockerignore
+
+# Byte-compiled / optimized / DLL files
 **/__pycache__/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-.pytest_cache/
-.coverage
-.env
-.venv
+**/*.py[cod]
+
+.vscode/
 venv/
+*.db
+.env**
+
+data/
+.pylintrc
 logs/
-data/ 

@@ -131,17 +131,20 @@ async def subscribe_to_tickers():
                         message_data = json.loads(message['data'].decode())
                         ticker = message_data.get('ticker', '').strip().upper()
                         action = message_data.get('action', 'add')
-                        
+
                         if ticker:
-                            logger.info("Received ticker event: %s (action: %s)", ticker, action)
+                            logger.info(
+                                "Received ticker event: %s (action: %s)", ticker, action)
                             await process_ticker_event(ticker)
                         else:
-                            logger.warning("Empty ticker in message: %s", message_data)
+                            logger.warning(
+                                "Empty ticker in message: %s", message_data)
                     except json.JSONDecodeError:
                         # Fallback to simple string format
                         ticker = message['data'].decode().strip().upper()
                         if ticker:
-                            logger.info("Received ticker event (simple): %s", ticker)
+                            logger.info(
+                                "Received ticker event (simple): %s", ticker)
                             await process_ticker_event(ticker)
                     except Exception as e:
                         logger.error("Error processing ticker message: %s", e)

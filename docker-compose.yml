@@ -32,7 +32,7 @@ services:
   risk-worker:
     build: .
     env_file:
-      - .env.production
+      - .env.docker.worker
     ports:
       - "8000:8000"
     depends_on:
