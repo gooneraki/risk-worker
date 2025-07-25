@@ -22,7 +22,6 @@ cp env.example .env
 ## API Endpoints
 
 - `GET /healthz` - Health check
-- `GET /latest-price/{ticker}` - Get latest price for ticker
 - `POST /trigger-update/{ticker}` - Manually trigger price update
 
 ## Configuration
@@ -46,7 +45,6 @@ WORKER_SECRET=your-shared-secret-key-change-this
 ```bash
 # Test the API
 curl http://localhost:8000/healthz
-curl http://localhost:8000/latest-price/AAPL
 curl -X POST http://localhost:8000/trigger-update/AAPL
 
 # Send ticker updates via Redis

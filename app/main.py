@@ -1,9 +1,9 @@
 """Main application module - FastAPI worker with Redis subscription"""
+from app.metrics_service import setup_metrics, metrics_endpoint
 import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, Header
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from app.logger_service import logger
@@ -14,6 +14,7 @@ from app.models import TickerPrice
 from app.redis_service import redis_service
 # Redis client and channel
 REDIS_CHANNEL = settings.redis_channel
+
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,9 @@ app = FastAPI(title="Risk Worker",
               description="Async worker for processing ticker price updates",
               lifespan=lifespan)
 
+# Set up Prometheus metrics
+setup_metrics(app)
+
 
 def verify_shared_secret(x_worker_secret: str = Header(None)):
     """Simple security check for server-to-server communication"""
@@ -69,6 +73,12 @@ def healthz():
     return {"status": "ok", "service": "risk-worker"}
 
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return await metrics_endpoint()
+
+
 @app.get("/")
 @app.head("/")
 def root():
@@ -79,11 +89,13 @@ def root():
         "endpoints": {
             "health": "/healthz",
             "docs": "/docs",
-            "latest_price": "/latest-price/{ticker}",
             "trigger_update": "/trigger-update/{ticker}"
         },
         "status": "running"
     }
+
+
+<< << << < Updated upstream
 
 
 @app.get("/latest-price/{ticker}", response_model=TickerPrice)
@@ -108,6 +120,10 @@ async def get_latest_ticker_price(
         logger.error("Error fetching latest price for %s: %s", ticker, e)
         raise HTTPException(
             status_code=500, detail="Internal server error") from e
+
+
+== == == =
+>>>>>> > Stashed changes
 
 
 @app.post("/trigger-update/{ticker}")

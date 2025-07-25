@@ -147,19 +147,3 @@ async def process_ticker_event(ticker: str):
 
     except Exception as e:
         logger.error("Error processing ticker %s: %s", ticker, str(e))
-
-
-async def get_latest_price(session: AsyncSession, ticker: str) -> Optional[TickerPrice]:
-    """Get latest price for a ticker"""
-    try:
-        stmt = (
-            select(TickerPrice)
-            .where(TickerPrice.ticker == ticker)
-            .order_by(desc(TickerPrice.timestamp))
-            .limit(1)
-        )
-        result = await session.execute(stmt)
-        return result.scalar_one_or_none()
-    except Exception as e:
-        logger.error("Error fetching latest price for %s: %s", ticker, str(e))
-        return None
